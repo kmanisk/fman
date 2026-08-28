@@ -1,25 +1,25 @@
-# ⚡ fman — PowerShell Font Manager for Windows
+# fman - PowerShell Font Manager for Windows
 
-> **A lightning-fast, zero-dependency PowerShell font manager for Windows with Neovim-style GitHub repo shorthand support.**
+> **A fast, zero-dependency PowerShell font manager for Windows with Neovim-style GitHub repo shorthand support.**
 
-`fman` makes managing fonts on Windows as effortless as installing packages with Scoop or plugins with Lazy.nvim.
-
----
-
-## ✨ Features
-
-- 🚀 **GitHub Repo Shorthand**: Install fonts directly with `owner/repo` (e.g. `the-moonwitch/Cozette`, `IdreesInc/Monocraft`).
-- ⚡ **Zero Dependencies**: Pure PowerShell, no admin rights required (installs per-user to `%LOCALAPPDATA%\Microsoft\Windows\Fonts`).
-- 🔄 **Instant Live Registration**: Automatically registers fonts in the Windows Registry and broadcasts `WM_FONTCHANGE` so applications pick up fonts immediately without rebooting.
-- 📦 **Multi-Format Support**: Direct `.ttf`, `.otf`, `.zip` release archives, or local directories.
-- 📋 **Clean Grouped Listing**: Groups hundreds of variants cleanly by font family name, with a `-full` flag to inspect individual files.
-- 🗑️ **Clean Uninstall**: Removes font files and unregisters registry keys automatically.
+`fman` makes managing fonts on Windows simple and declarative, similar to installing packages with Scoop or plugins with Lazy.nvim.
 
 ---
 
-## 📥 Quick Start / Installation
+## Features
 
-### Option 1: Run Directly via PowerShell
+- **GitHub Repo Shorthand**: Install fonts directly using `owner/repo` (e.g. `the-moonwitch/Cozette`, `IdreesInc/Monocraft`).
+- **Zero Dependencies**: Pure PowerShell, no admin privileges required (installs per-user to `%LOCALAPPDATA%\Microsoft\Windows\Fonts`).
+- **Instant Live Registration**: Registers fonts in the Windows Registry and broadcasts `WM_FONTCHANGE` so applications pick up fonts immediately without rebooting.
+- **Multi-Format Support**: Direct `.ttf`, `.otf`, `.zip` release archives, or local directories.
+- **Clean Grouped Listing**: Groups variants cleanly by font family name, with a `-full` flag to inspect individual files.
+- **Clean Uninstall**: Removes font files and unregisters registry keys automatically.
+
+---
+
+## Installation
+
+### Option 1: Clone and Set Alias
 ```powershell
 # Clone the repository
 git clone https://github.com/kmanisk/fman.git ~/fman
@@ -28,7 +28,7 @@ git clone https://github.com/kmanisk/fman.git ~/fman
 Add-Content $PROFILE 'Set-Alias fman "$HOME\fman\fman.ps1"'
 ```
 
-### Option 2: One-Liner Profile Function
+### Option 2: Function in PowerShell Profile
 Add this to your PowerShell `$PROFILE`:
 ```powershell
 function fman { & "$HOME\fman\fman.ps1" @args }
@@ -36,9 +36,9 @@ function fman { & "$HOME\fman\fman.ps1" @args }
 
 ---
 
-## 📖 Usage
+## Usage
 
-### 1. Install Fonts via GitHub Shorthand *(Neovim-Style)*
+### 1. Install Fonts via GitHub Shorthand
 ```powershell
 # Install latest Cozette font release from GitHub
 fman install the-moonwitch/Cozette
@@ -47,7 +47,7 @@ fman install the-moonwitch/Cozette
 fman install IdreesInc/Monocraft
 ```
 
-### 2. Install from URL / Release Archive
+### 2. Install from URL or Release Archive
 ```powershell
 fman install "https://github.com/the-moonwitch/Cozette/releases/download/v.1.30.0/CozetteFonts-v-1-30-0.zip"
 ```
@@ -84,7 +84,7 @@ fman rm Monocraft
 
 ---
 
-## 🛠️ CLI Cheat Sheet
+## Command Reference
 
 | Command | Shorthand | Description |
 | :--- | :--- | :--- |
@@ -98,6 +98,6 @@ fman rm Monocraft
 
 ---
 
-## 📄 License
+## License
 
-MIT © [kmanisk](https://github.com/kmanisk)
+MIT (c) [kmanisk](https://github.com/kmanisk)
