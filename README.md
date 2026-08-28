@@ -142,16 +142,31 @@ fman l
 
 *Example Output:*
 ```text
-=== INSTALLED USER FONTS (16 Families, 102 Files) ===
-  [OK] Agave (4 variant file(s))
-  [OK] Cozette (8 variant file(s))
-  [OK] fixedsys (2 variant file(s))
-  [OK] Iosevka (54 variant file(s))
-  [OK] Monocraft (12 variant file(s))
+=== INSTALLED USER FONTS (16 Families, 123 Files) ===
+
+[ Pixel & Bitmap Fonts ]
+  - Cozette (8 variants)
+  - Fixedsys (2 variants)
+  - GohuFont (8 variants)
+  - Monocraft (13 variants)
+  - PixelCode (1 variants)
+
+[ Monospace & Coding Fonts ]
+  - Agave (4 variants)
+  - AporeticSansMono (4 variants)
+  - AporeticSerifMono (4 variants)
+  - ComicMono (1 variants)
+  - DaddyTimeMono (2 variants)
+  - FantasqueSansMono (6 variants)
+  - Hermit (6 variants)
+  - IntelOneMono (3 variants)
+  - Iosevka (54 variants)
+  - PsudoFontLigaMono (4 variants)
+  - VictorMono (3 variants)
 ```
 
 #### Detailed View (`-full`)
-Displays every individual font file and path:
+Displays every individual font file under its family:
 
 ```powershell
 fman list -full
@@ -161,11 +176,13 @@ fman lf
 
 *Example Output:*
 ```text
-=== INSTALLED USER FONTS ===
-  [OK] fixedsys (2 variant file(s))
+=== INSTALLED USER FONTS (16 Families, 123 Files) ===
+
+[ Pixel & Bitmap Fonts ]
+  - Fixedsys (2 variants)
        -> FSEX302-alt.ttf
        -> FSEX302.ttf
-  [OK] Monocraft (12 variant file(s))
+  - Monocraft (13 variants)
        -> Monocraft-Bold.otf
        -> Monocraft-Italic.otf
        ...

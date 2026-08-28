@@ -116,24 +116,88 @@ EXAMPLES:
             return
         }
 
-        # Group files into font families
-        $groups = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
-
+        # Group files into clean font families
+        $families = @{}
         foreach ($f in $installed) {
-            $clean = $f.BaseName -replace '(-Bold|-Regular|-Italic|-BoldItalic|-ExtraBold|-SemiBold|-Light|-Medium|-Thin|-Heavy|-Oblique|-Normal|BoldItalic|BoldUpright|RegularItalic|RegularUpright|_bold|_italic|_regular)+$', ''
+            $clean = $f.BaseName -replace '(-Bold|-Regular|-Italic|-BoldItalic|-ExtraBold|-SemiBold|-Light|-Medium|-Thin|-Heavy|-Black|-ExtraLight|-ExtraBlack|-Oblique|-Normal|BoldItalic|BoldUpright|RegularItalic|RegularUpright|_bold|_italic|_regular)+$', ''
             $clean = $clean -replace '[-_]+$', ''
-            if (-not $groups.ContainsKey($clean)) {
-                $groups[$clean] = [System.Collections.Generic.List[string]]::new()
+            if ($clean -match '^(FSEX\d+|Fixedsys)') { $clean = "Fixedsys" }
+            elseif ($clean -match '^Cozette') { $clean = "Cozette" }
+            elseif ($clean -match '^GohuFont') { $clean = "GohuFont" }
+            elseif ($clean -match '^Monocraft') { $clean = "Monocraft" }
+            elseif ($clean -match '^Iosevka') { $clean = "Iosevka" }
+            elseif ($clean -match '^Agave') { $clean = "Agave" }
+            elseif ($clean -match '^(Intone|IntelOne)') { $clean = "IntelOneMono" }
+            elseif ($clean -match '^(Hurmit|Hermit)') { $clean = "Hermit" }
+            elseif ($clean -match '^Fantasque') { $clean = "FantasqueSansMono" }
+            elseif ($clean -match '^DaddyTime') { $clean = "DaddyTimeMono" }
+            elseif ($clean -match '^Victor') { $clean = "VictorMono" }
+            elseif ($clean -match '^(psudo|Pseudo)') { $clean = "PsudoFontLigaMono" }
+            elseif ($clean -match '^aporetic-sans') { $clean = "AporeticSansMono" }
+            elseif ($clean -match '^aporetic-serif') { $clean = "AporeticSerifMono" }
+
+            if (-not $families.ContainsKey($clean)) {
+                $families[$clean] = [System.Collections.Generic.List[string]]::new()
             }
-            $groups[$clean].Add($f.Name)
+            $families[$clean].Add($f.Name)
         }
 
-        Write-Host "`n=== INSTALLED USER FONTS ($($groups.Count) Families, $($installed.Count) Files) ===" -ForegroundColor Cyan
-        foreach ($fam in $groups.Keys) {
-            Write-Host "  [OK] $fam ($($groups[$fam].Count) variant file(s))" -ForegroundColor Green
-            if ($isFull) {
-                foreach ($file in $groups[$fam]) {
-                    Write-Host "       -> $file" -ForegroundColor DarkGray
+        $pixelKeywords = @("pixel", "bitmap", "craft", "cozette", "gohu", "fixedsys", "terminus", "scientifica", "creep", "tamzen", "unscii", "spleen", "dina")
+
+        $catPixel = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $catMono  = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $catOther = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+        foreach ($k in $families.Keys) {
+            $lower = $k.ToLower()
+            $isPixel = $false
+            foreach ($kw in $pixelKeywords) {
+                if ($lower -like "*$kw*") { $isPixel = $true; break }
+            }
+
+            if ($isPixel) {
+                $catPixel[$k] = $families[$k]
+            } elseif ($lower -match "(mono|code|nerd|sans|serif|type|jetbrains|fira|cascadia|consolas|hack|roboto|inconsolata|agave|iosevka|hermit|fantasque|daddy|victor)") {
+                $catMono[$k] = $families[$k]
+            } else {
+                $catOther[$k] = $families[$k]
+            }
+        }
+
+        Write-Host "`n=== INSTALLED USER FONTS ($($families.Count) Families, $($installed.Count) Files) ===" -ForegroundColor Cyan
+
+        if ($catPixel.Count -gt 0) {
+            Write-Host "`n[ Pixel & Bitmap Fonts ]" -ForegroundColor Yellow
+            foreach ($fam in $catPixel.Keys) {
+                Write-Host "  - $fam ($($catPixel[$fam].Count) variants)" -ForegroundColor White
+                if ($isFull) {
+                    foreach ($file in $catPixel[$fam]) {
+                        Write-Host "       -> $file" -ForegroundColor DarkGray
+                    }
+                }
+            }
+        }
+
+        if ($catMono.Count -gt 0) {
+            Write-Host "`n[ Monospace & Coding Fonts ]" -ForegroundColor Yellow
+            foreach ($fam in $catMono.Keys) {
+                Write-Host "  - $fam ($($catMono[$fam].Count) variants)" -ForegroundColor White
+                if ($isFull) {
+                    foreach ($file in $catMono[$fam]) {
+                        Write-Host "       -> $file" -ForegroundColor DarkGray
+                    }
+                }
+            }
+        }
+
+        if ($catOther.Count -gt 0) {
+            Write-Host "`n[ Other Fonts ]" -ForegroundColor Yellow
+            foreach ($fam in $catOther.Keys) {
+                Write-Host "  - $fam ($($catOther[$fam].Count) variants)" -ForegroundColor White
+                if ($isFull) {
+                    foreach ($file in $catOther[$fam]) {
+                        Write-Host "       -> $file" -ForegroundColor DarkGray
+                    }
                 }
             }
         }
