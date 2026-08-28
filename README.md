@@ -1,35 +1,75 @@
-# fman - PowerShell Font Manager for Windows
+# fman
 
-> **A fast, zero-dependency PowerShell font manager for Windows with Neovim-style GitHub repo shorthand support.**
+> A fast, zero-dependency PowerShell font manager for Windows with Neovim-style GitHub repo shorthand support.
 
-`fman` makes managing fonts on Windows simple and declarative, similar to installing packages with Scoop or plugins with Lazy.nvim.
+`fman` brings declarative, package-manager-style font management to Windows. It allows installing fonts directly from GitHub repositories using `owner/repo` shorthand, direct URLs, or local files, registers them instantly in Windows, and manages them with zero external dependencies and no administrative privileges required.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [1. GitHub Repository Shorthand](#1-github-repository-shorthand)
+  - [2. Direct URLs and Release Archives](#2-direct-urls-and-release-archives)
+  - [3. Local Files and Directories](#3-local-files-and-directories)
+  - [4. Listing Installed Fonts](#4-listing-installed-fonts)
+  - [5. Removing Fonts](#5-removing-fonts)
+  - [6. Help and Version](#6-help-and-version)
+- [How It Works](#how-it-works)
+- [Command Reference](#command-reference)
+- [License](#license)
 
 ---
 
 ## Features
 
-- **GitHub Repo Shorthand**: Install fonts directly using `owner/repo` (e.g. `the-moonwitch/Cozette`, `IdreesInc/Monocraft`).
-- **Zero Dependencies**: Pure PowerShell, no admin privileges required (installs per-user to `%LOCALAPPDATA%\Microsoft\Windows\Fonts`).
-- **Instant Live Registration**: Registers fonts in the Windows Registry and broadcasts `WM_FONTCHANGE` so applications pick up fonts immediately without rebooting.
-- **Multi-Format Support**: Direct `.ttf`, `.otf`, `.zip` release archives, or local directories.
-- **Clean Grouped Listing**: Groups variants cleanly by font family name, with a `-full` flag to inspect individual files.
-- **Clean Uninstall**: Removes font files and unregisters registry keys automatically.
+- **GitHub Repo Shorthand**: Install fonts directly with `owner/repo` syntax (e.g., `the-moonwitch/Cozette`, `kika/fixedsys`).
+- **Smart Asset Resolution**:
+  - Automatically identifies and downloads release `.zip` archives.
+  - Automatically downloads standalone `.ttf` and `.otf` release assets.
+  - Recursively searches the Git tree for font files if no releases exist.
+- **High Performance**:
+  - Parallel multi-stream downloads via `curl --parallel`.
+  - Fast IPv4 DNS resolution (`-4`) to eliminate S3 handshake delays.
+  - Non-blocking Windows font broadcast (`SendNotifyMessage`) for sub-second execution.
+- **Zero Dependencies & No Admin Required**:
+  - Installs fonts per-user into `%LOCALAPPDATA%\Microsoft\Windows\Fonts`.
+  - Automatically creates per-user registry entries in `HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts`.
+- **Clean Grouped Listing**:
+  - Groups font variant files cleanly by font family name by default.
+  - Supports `-full` inspection to see every individual font file.
+- **Clean Uninstallation**:
+  - Automatically deletes font files and cleans up corresponding registry entries.
 
 ---
 
 ## Installation
 
-### Option 1: Clone and Set Alias
-```powershell
-# Clone the repository
-git clone https://github.com/kmanisk/fman.git ~/fman
+### Method 1: Clone and Set Alias (Recommended)
 
-# Add to your PowerShell profile ($PROFILE)
-Add-Content $PROFILE 'Set-Alias fman "$HOME\fman\fman.ps1"'
-```
+1. Clone the repository to your user directory:
+   ```powershell
+   git clone https://github.com/kmanisk/fman.git ~/fman
+   ```
 
-### Option 2: Function in PowerShell Profile
-Add this to your PowerShell `$PROFILE`:
+2. Add the alias to your PowerShell profile:
+   ```powershell
+   Add-Content $PROFILE 'Set-Alias fman "$HOME\fman\fman.ps1"'
+   ```
+
+3. Reload your profile:
+   ```powershell
+   . $PROFILE
+   ```
+
+---
+
+### Method 2: Wrapper Function
+
+Add the following function to your `$PROFILE`:
+
 ```powershell
 function fman { & "$HOME\fman\fman.ps1" @args }
 ```
@@ -38,63 +78,149 @@ function fman { & "$HOME\fman\fman.ps1" @args }
 
 ## Usage
 
-### 1. Install Fonts via GitHub Shorthand
+### 1. GitHub Repository Shorthand
+
+`fman` automatically resolves and downloads font files from GitHub releases or repository source trees.
+
 ```powershell
-# Install latest Cozette font release from GitHub
+# Install release containing a ZIP bundle
 fman install the-moonwitch/Cozette
 
-# Install Monocraft font from GitHub
+# Install release containing individual TTF assets
+fman install kika/fixedsys
+
+# Install font bundle from latest GitHub release
 fman install IdreesInc/Monocraft
+
+# Install from repository tree when no releases exist
+fman install epk/SF-Mono-Nerd-Font
 ```
 
-### 2. Install from URL or Release Archive
+---
+
+### 2. Direct URLs and Release Archives
+
+Install directly from any web URL pointing to a `.zip`, `.ttf`, or `.otf` file:
+
 ```powershell
+# Install from release archive URL
 fman install "https://github.com/the-moonwitch/Cozette/releases/download/v.1.30.0/CozetteFonts-v-1-30-0.zip"
+
+# Install from raw font file URL
+fman install "https://example.com/fonts/CustomFont.ttf"
 ```
 
-### 3. Install from Local File or Directory
-```powershell
-# Install single TTF or OTF
-fman install "C:\Downloads\MyFont.ttf"
+---
 
-# Install all fonts inside a ZIP or folder
-fman install "C:\Downloads\FontBundle.zip"
-fman install "C:\Downloads\FontsFolder"
+### 3. Local Files and Directories
+
+Install fonts from your local disk:
+
+```powershell
+# Install single TTF or OTF file
+fman install "C:\Downloads\CustomFont.ttf"
+
+# Install all fonts inside a ZIP file
+fman install "C:\Downloads\FontPack.zip"
+
+# Install all fonts inside a folder
+fman install "C:\Downloads\ExtractedFonts"
 ```
 
-### 4. List Installed Fonts
+---
+
+### 4. Listing Installed Fonts
+
+#### Compact View (Default)
+Groups all variant files cleanly by font family name:
+
 ```powershell
-# Concise list grouped by font family
 fman list
-# or shorthand:
+# or shorthand
 fman l
+```
 
-# Full list showing every individual .ttf / .otf file
+*Example Output:*
+```text
+=== INSTALLED USER FONTS (16 Families, 102 Files) ===
+  [OK] Agave (4 variant file(s))
+  [OK] Cozette (8 variant file(s))
+  [OK] fixedsys (2 variant file(s))
+  [OK] Iosevka (54 variant file(s))
+  [OK] Monocraft (12 variant file(s))
+```
+
+#### Detailed View (`-full`)
+Displays every individual font file and path:
+
+```powershell
 fman list -full
-# or shorthand:
+# or shorthand
 fman lf
 ```
 
-### 5. Remove / Uninstall a Font
-```powershell
-fman remove Cozette
-# or shorthand:
-fman rm Monocraft
+*Example Output:*
+```text
+=== INSTALLED USER FONTS ===
+  [OK] fixedsys (2 variant file(s))
+       -> FSEX302-alt.ttf
+       -> FSEX302.ttf
+  [OK] Monocraft (12 variant file(s))
+       -> Monocraft-Bold.otf
+       -> Monocraft-Italic.otf
+       ...
 ```
+
+---
+
+### 5. Removing Fonts
+
+Uninstalls all matching font files from disk and removes their Windows registry entries:
+
+```powershell
+fman remove fixedsys
+# or shorthand
+fman rm Cozette
+```
+
+---
+
+### 6. Help and Version
+
+```powershell
+# View help
+fman help
+# or
+fman -h
+
+# View version
+fman version
+# or
+fman -v
+```
+
+---
+
+## How It Works
+
+1. **Asset Discovery**: When given `owner/repo`, `fman` checks the GitHub Releases API for zip archives and font files. If no release exists, it queries the GitHub Git Tree API to discover font files recursively throughout the repository.
+2. **Parallel Fetching**: Assets are downloaded concurrently using `curl -4 --parallel` to ensure maximum throughput and bypass IPv6 DNS lookup delays.
+3. **Per-User Installation**: Font files are copied to `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, requiring no administrator privileges.
+4. **Registry Registration**: Per-user font entries are written to `HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts`.
+5. **Live System Notification**: `fman` calls the Win32 `SendNotifyMessage(HWND_BROADCAST, WM_FONTCHANGE, 0, 0)` API, notifying active applications (such as Windows Terminal, VS Code, and editors) without blocking the terminal session.
 
 ---
 
 ## Command Reference
 
-| Command | Shorthand | Description |
-| :--- | :--- | :--- |
-| `fman install <target>` | `fman i <target>` | Install from GitHub `owner/repo`, URL, or file |
-| `fman remove <font>` | `fman rm <font>` | Uninstall font files and remove registry entries |
-| `fman list` | `fman l` | List installed font families |
-| `fman list -full` | `fman lf` | List all individual `.ttf`/`.otf` variant files |
-| `fman add <font>` | `fman add <font>` | Track a font name in the local manifest |
-| `fman version` | `fman v` | Print `fman` version |
-| `fman help` | `fman h` | Show help and usage examples |
+| Command | Shorthand | Arguments | Description |
+| :--- | :--- | :--- | :--- |
+| `install` | `i` | `<repo \| url \| path>` | Install font from GitHub repo, URL, or local file |
+| `remove` | `rm`, `r` | `<font_name>` | Uninstall font files and remove registry entries |
+| `list` | `ls`, `l` | `[-full]` | List installed font families (or all files with `-full`) |
+| `add` | `add` | `<font_name>` | Add a font name to the local tracking manifest |
+| `help` | `h`, `-h`, `--help` | - | Display help and usage instructions |
+| `version` | `v`, `-v`, `--version` | - | Display current version |
 
 ---
 
