@@ -60,18 +60,18 @@ function Update-Manifest {
     } catch {}
 }
 
-# Helper: Notify Windows of Font Change
+# Helper: Notify Windows of Font Change (non-blocking)
 function Send-FontNotification {
     Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 public class WinFontNotifier {
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern int SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+    public static extern bool SendNotifyMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 }
 "@ -ErrorAction SilentlyContinue
     try {
-        [WinFontNotifier]::SendMessage(0xffff, 0x001D, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        [WinFontNotifier]::SendNotifyMessage(0xffff, 0x001D, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
     } catch {}
 }
 
@@ -221,16 +221,23 @@ EXAMPLES:
                 if ($downloadUrls.Count -gt 0) {
                     $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
                     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+
+                    Write-Host "  -> Fetching $($downloadUrls.Count) font file(s) in parallel..." -ForegroundColor Cyan
+                    $curlArgs = @("-4", "-fL", "-A", "Mozilla/5.0", "--parallel", "--parallel-immediate", "--retry", "2", "--connect-timeout", "5", "--max-time", "30", "-s")
                     for ($i = 0; $i -lt $downloadUrls.Count; $i++) {
                         $dUrl = $downloadUrls[$i]
                         $fName = [System.IO.Path]::GetFileName(($dUrl -split '\?')[0])
                         $dlFile = Join-Path $tempDir $fName
-                        Write-Host "  -> Downloading [$($i+1)/$($downloadUrls.Count)] $fName..." -ForegroundColor Cyan
-                        curl.exe -fL --retry 2 --connect-timeout 10 --max-time 60 -A "Mozilla/5.0" -# -o $dlFile $dUrl
-                        if ($isZipList[$i] -or ($fName -match '\.zip$')) {
-                            Expand-Archive -Path $dlFile -DestinationPath $tempDir -Force
-                        }
+                        $curlArgs += @("-o", $dlFile, $dUrl)
                     }
+
+                    & curl.exe @curlArgs
+
+                    # Extract any downloaded zip archives
+                    Get-ChildItem -Path $tempDir -Filter *.zip -ErrorAction SilentlyContinue | ForEach-Object {
+                        Expand-Archive -Path $_.FullName -DestinationPath $tempDir -Force
+                    }
+
                     $filesToInstall = Get-ChildItem -Path $tempDir -Include *.ttf, *.otf -Recurse
                     $inferredName = ($target -split '/')[-1]
                 } else {
@@ -243,9 +250,9 @@ EXAMPLES:
                 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
                 $fileName = ($target -split '/')[-1]
                 $dlPath = Join-Path $tempDir $fileName
-                Write-Host "  -> Downloading $fileName..." -ForegroundColor Cyan
+                Write-Host "  -> Fetching $fileName..." -ForegroundColor Cyan
                 if (Get-Command 'curl.exe' -ErrorAction SilentlyContinue) {
-                    curl.exe -fL --retry 2 --connect-timeout 10 --max-time 60 -A "Mozilla/5.0" -# -o $dlPath $target
+                    curl.exe -4 -fL --retry 2 --connect-timeout 5 --max-time 30 -A "Mozilla/5.0" -s -o $dlPath $target
                 } else {
                     Invoke-WebRequest -Uri $target -OutFile $dlPath -Headers @{ 'User-Agent' = 'Mozilla/5.0' } -MaximumRedirection 10
                 }
