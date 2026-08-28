@@ -163,46 +163,77 @@ EXAMPLES:
             $filesToInstall = @()
             $inferredName = $target
 
-            # 1. GitHub repo shorthand (e.g. 'the-moonwitch/Cozette', 'IdreesInc/Monocraft')
+            # 1. GitHub repo shorthand (e.g. 'the-moonwitch/Cozette', 'kika/fixedsys', 'epk/SF-Mono-Nerd-Font')
             if ($target -match '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$' -and -not (Test-Path $target)) {
-                Write-Host "Resolving latest GitHub release for $target..." -ForegroundColor Cyan
+                Write-Host "Resolving GitHub font files for $target..." -ForegroundColor Cyan
+                $headers = @{ "User-Agent" = "Mozilla/5.0" }
+                if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "token $env:GITHUB_TOKEN" }
+                $downloadUrls = [System.Collections.Generic.List[string]]::new()
+                $isZipList = [System.Collections.Generic.List[bool]]::new()
+
+                # A. Try GitHub Releases first
                 try {
                     $api = "https://api.github.com/repos/$target/releases/latest"
-                    $headers = @{ "User-Agent" = "Mozilla/5.0" }
-                    if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "token $env:GITHUB_TOKEN" }
                     $res = Invoke-RestMethod -Uri $api -Headers $headers -ErrorAction Stop
 
                     $zipAssets = @($res.assets | Where-Object { $_.name -match "\.zip$" })
-                    $downloadUrls = @()
                     if ($zipAssets.Count -gt 0) {
                         $best = ($zipAssets | Where-Object { $_.name -match "(font|vector|bundle|release|all)" } | Select-Object -First 1)
                         if (-not $best) { $best = $zipAssets[0] }
-                        $downloadUrls = @($best.browser_download_url)
+                        $downloadUrls.Add($best.browser_download_url)
+                        $isZipList.Add($true)
+                        Write-Host "Found release font bundle: $($best.name) (Release $($res.tag_name))" -ForegroundColor Green
                     } else {
                         $fontAssets = @($res.assets | Where-Object { $_.name -match "\.(ttf|otf)$" })
                         if ($fontAssets.Count -gt 0) {
-                            $downloadUrls = @($fontAssets | Select-Object -ExpandProperty browser_download_url)
-                        }
-                    }
-
-                    if ($downloadUrls.Count -gt 0) {
-                        $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
-                        New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-                        foreach ($dUrl in $downloadUrls) {
-                            $fName = ($dUrl -split '/')[-1]
-                            $dlFile = Join-Path $tempDir $fName
-                            curl.exe -fL -A "Mozilla/5.0" -s -o $dlFile $dUrl
-                            if ($fName -match '\.zip$') {
-                                Expand-Archive -Path $dlFile -DestinationPath $tempDir -Force
+                            foreach ($fa in $fontAssets) {
+                                $downloadUrls.Add($fa.browser_download_url)
+                                $isZipList.Add($false)
                             }
+                            Write-Host "Found $($fontAssets.Count) font file(s) in Release $($res.tag_name)" -ForegroundColor Green
                         }
-                        $filesToInstall = Get-ChildItem -Path $tempDir -Include *.ttf, *.otf -Recurse
-                        $inferredName = ($target -split '/')[-1]
-                    } else {
-                        Write-Warning "No font files (.ttf/.otf/.zip) found in latest release of $target."
                     }
                 } catch {
-                    Write-Warning "GitHub release query failed for $target : $_"
+                    Write-Host "No release found for $target. Searching repository tree..." -ForegroundColor DarkGray
+                }
+
+                # B. Fallback: Search Repository Tree recursively if no release assets found
+                if ($downloadUrls.Count -eq 0) {
+                    try {
+                        $treeApi = "https://api.github.com/repos/$target/git/trees/HEAD?recursive=1"
+                        $treeRes = Invoke-RestMethod -Uri $treeApi -Headers $headers -ErrorAction Stop
+                        $fontBlobs = @($treeRes.tree | Where-Object { $_.type -eq "blob" -and $_.path -match "\.(ttf|otf)$" })
+
+                        if ($fontBlobs.Count -gt 0) {
+                            Write-Host "Found $($fontBlobs.Count) font file(s) across $target repository tree." -ForegroundColor Green
+                            foreach ($blob in $fontBlobs) {
+                                $rawUrl = "https://raw.githubusercontent.com/$target/HEAD/$($blob.path)"
+                                $downloadUrls.Add($rawUrl)
+                                $isZipList.Add($false)
+                            }
+                        }
+                    } catch {
+                        Write-Warning "Tree search failed for $target : $_"
+                    }
+                }
+
+                # Download all resolved assets
+                if ($downloadUrls.Count -gt 0) {
+                    $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
+                    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+                    for ($i = 0; $i -lt $downloadUrls.Count; $i++) {
+                        $dUrl = $downloadUrls[$i]
+                        $fName = [System.IO.Path]::GetFileName(($dUrl -split '\?')[0])
+                        $dlFile = Join-Path $tempDir $fName
+                        curl.exe -fL -A "Mozilla/5.0" -s -o $dlFile $dUrl
+                        if ($isZipList[$i] -or ($fName -match '\.zip$')) {
+                            Expand-Archive -Path $dlFile -DestinationPath $tempDir -Force
+                        }
+                    }
+                    $filesToInstall = Get-ChildItem -Path $tempDir -Include *.ttf, *.otf -Recurse
+                    $inferredName = ($target -split '/')[-1]
+                } else {
+                    Write-Warning "No font files (.ttf/.otf/.zip) found in releases or repository tree for $target."
                 }
             }
             # 2. URL Download (Direct Link or Release Asset)
