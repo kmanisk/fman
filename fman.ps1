@@ -142,61 +142,84 @@ EXAMPLES:
             $families[$clean].Add($f.Name)
         }
 
-        $pixelKeywords = @("pixel", "bitmap", "craft", "cozette", "gohu", "fixedsys", "terminus", "scientifica", "creep", "tamzen", "unscii", "spleen", "dina")
+        $FontCategoryMap = @{
+            # Retro / Pixel
+            "PixelCode"          = "Retro / Pixel"
+            "Monocraft"          = "Retro / Pixel"
+            "Cozette"            = "Retro / Pixel"
+            "Fixedsys"           = "Retro / Pixel"
+            "GohuFont"           = "Retro / Pixel"
+            "Terminus"           = "Retro / Pixel"
+            "Spleen"             = "Retro / Pixel"
+            "Scientifica"        = "Retro / Pixel"
 
-        $catPixel = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
-        $catMono  = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
-        $catOther = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            # Coding / Terminal
+            "Iosevka"            = "Coding / Terminal"
+            "Agave"              = "Coding / Terminal"
+            "IntelOneMono"       = "Coding / Terminal"
+            "Hermit"             = "Coding / Terminal"
+            "FantasqueSansMono"  = "Coding / Terminal"
+            "DaddyTimeMono"      = "Coding / Terminal"
+            "VictorMono"         = "Coding / Terminal"
+            "ComicMono"          = "Coding / Terminal"
+            "PsudoFontLigaMono"  = "Coding / Terminal"
+            "AporeticSansMono"   = "Coding / Terminal"
+            "AporeticSerifMono"  = "Coding / Terminal"
+            "JetBrainsMono"      = "Coding / Terminal"
+            "FiraCode"           = "Coding / Terminal"
+            "CascadiaCode"       = "Coding / Terminal"
+            "Hack"               = "Coding / Terminal"
+
+            # System / UI
+            "Inter"              = "System / UI"
+            "SegoeUI"            = "System / UI"
+            "SFPro"              = "System / UI"
+            "Roboto"             = "System / UI"
+            "Aptos"              = "System / UI"
+            "Cantarell"          = "System / UI"
+        }
+
+        $buckets = [ordered]@{
+            "Coding / Terminal"    = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            "Retro / Pixel"        = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            "System / UI"          = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            "Display / Decorative" = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        }
 
         foreach ($k in $families.Keys) {
-            $lower = $k.ToLower()
-            $isPixel = $false
-            foreach ($kw in $pixelKeywords) {
-                if ($lower -like "*$kw*") { $isPixel = $true; break }
+            $targetBucket = $null
+            if ($FontCategoryMap.ContainsKey($k)) {
+                $targetBucket = $FontCategoryMap[$k]
+            } else {
+                $lower = $k.ToLower()
+                if ($lower -match "(pixel|bitmap|craft|cozette|gohu|fixedsys|terminus|spleen|scientifica|creep|tamzen|unscii|dina)") {
+                    $targetBucket = "Retro / Pixel"
+                } elseif ($lower -match "(mono|code|nerd|terminal|console|type|iosevka|cascadia|fira|jetbrains|hack)") {
+                    $targetBucket = "Coding / Terminal"
+                } elseif ($lower -match "(ui|system|sans|serif|text|pro|aptos|segoe)") {
+                    $targetBucket = "System / UI"
+                } else {
+                    $targetBucket = "Display / Decorative"
+                }
             }
 
-            if ($isPixel) {
-                $catPixel[$k] = $families[$k]
-            } elseif ($lower -match "(mono|code|nerd|sans|serif|type|jetbrains|fira|cascadia|consolas|hack|roboto|inconsolata|agave|iosevka|hermit|fantasque|daddy|victor)") {
-                $catMono[$k] = $families[$k]
-            } else {
-                $catOther[$k] = $families[$k]
+            if (-not $buckets.Contains($targetBucket)) {
+                $buckets[$targetBucket] = [System.Collections.Generic.SortedDictionary[string, System.Collections.Generic.List[string]]]::new([System.StringComparer]::OrdinalIgnoreCase)
             }
+            $buckets[$targetBucket][$k] = $families[$k]
         }
 
         Write-Host "`n=== INSTALLED USER FONTS ($($families.Count) Families, $($installed.Count) Files) ===" -ForegroundColor Cyan
 
-        if ($catPixel.Count -gt 0) {
-            Write-Host "`n[ Pixel & Bitmap Fonts ]" -ForegroundColor Yellow
-            foreach ($fam in $catPixel.Keys) {
-                Write-Host "  - $fam ($($catPixel[$fam].Count) variants)" -ForegroundColor White
-                if ($isFull) {
-                    foreach ($file in $catPixel[$fam]) {
-                        Write-Host "       -> $file" -ForegroundColor DarkGray
-                    }
-                }
-            }
-        }
-
-        if ($catMono.Count -gt 0) {
-            Write-Host "`n[ Monospace & Coding Fonts ]" -ForegroundColor Yellow
-            foreach ($fam in $catMono.Keys) {
-                Write-Host "  - $fam ($($catMono[$fam].Count) variants)" -ForegroundColor White
-                if ($isFull) {
-                    foreach ($file in $catMono[$fam]) {
-                        Write-Host "       -> $file" -ForegroundColor DarkGray
-                    }
-                }
-            }
-        }
-
-        if ($catOther.Count -gt 0) {
-            Write-Host "`n[ Other Fonts ]" -ForegroundColor Yellow
-            foreach ($fam in $catOther.Keys) {
-                Write-Host "  - $fam ($($catOther[$fam].Count) variants)" -ForegroundColor White
-                if ($isFull) {
-                    foreach ($file in $catOther[$fam]) {
-                        Write-Host "       -> $file" -ForegroundColor DarkGray
+        foreach ($bName in $buckets.Keys) {
+            if ($buckets[$bName].Count -gt 0) {
+                Write-Host "`n[ $bName ]" -ForegroundColor Yellow
+                foreach ($fam in $buckets[$bName].Keys) {
+                    Write-Host "  - $fam ($($buckets[$bName][$fam].Count) variants)" -ForegroundColor White
+                    if ($isFull) {
+                        foreach ($file in $buckets[$bName][$fam]) {
+                            Write-Host "       -> $file" -ForegroundColor DarkGray
+                        }
                     }
                 }
             }

@@ -144,14 +144,7 @@ fman l
 ```text
 === INSTALLED USER FONTS (16 Families, 123 Files) ===
 
-[ Pixel & Bitmap Fonts ]
-  - Cozette (8 variants)
-  - Fixedsys (2 variants)
-  - GohuFont (8 variants)
-  - Monocraft (13 variants)
-  - PixelCode (1 variants)
-
-[ Monospace & Coding Fonts ]
+[ Coding / Terminal ]
   - Agave (4 variants)
   - AporeticSansMono (4 variants)
   - AporeticSerifMono (4 variants)
@@ -163,6 +156,13 @@ fman l
   - Iosevka (54 variants)
   - PsudoFontLigaMono (4 variants)
   - VictorMono (3 variants)
+
+[ Retro / Pixel ]
+  - Cozette (8 variants)
+  - Fixedsys (2 variants)
+  - GohuFont (8 variants)
+  - Monocraft (13 variants)
+  - PixelCode (1 variants)
 ```
 
 #### Detailed View (`-full`)
@@ -178,7 +178,7 @@ fman lf
 ```text
 === INSTALLED USER FONTS (16 Families, 123 Files) ===
 
-[ Pixel & Bitmap Fonts ]
+[ Retro / Pixel ]
   - Fixedsys (2 variants)
        -> FSEX302-alt.ttf
        -> FSEX302.ttf
