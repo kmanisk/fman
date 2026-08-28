@@ -127,6 +127,7 @@ EXAMPLES:
             elseif ($clean -match '^Monocraft') { $clean = "Monocraft" }
             elseif ($clean -match '^Iosevka') { $clean = "Iosevka" }
             elseif ($clean -match '^Agave') { $clean = "Agave" }
+            elseif ($clean -match '^JetBrainsMono') { $clean = "JetBrainsMono" }
             elseif ($clean -match '^(Intone|IntelOne)') { $clean = "IntelOneMono" }
             elseif ($clean -match '^(Hurmit|Hermit)') { $clean = "Hermit" }
             elseif ($clean -match '^Fantasque') { $clean = "FantasqueSansMono" }
