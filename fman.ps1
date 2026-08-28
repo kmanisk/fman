@@ -145,6 +145,7 @@ EXAMPLES:
 
         $FontCategoryMap = @{
             # Retro / Pixel
+            "DepartureMono"      = "Retro / Pixel"
             "PixelCode"          = "Retro / Pixel"
             "Monocraft"          = "Retro / Pixel"
             "Cozette"            = "Retro / Pixel"
