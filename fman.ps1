@@ -225,7 +225,8 @@ EXAMPLES:
                         $dUrl = $downloadUrls[$i]
                         $fName = [System.IO.Path]::GetFileName(($dUrl -split '\?')[0])
                         $dlFile = Join-Path $tempDir $fName
-                        curl.exe -fL -A "Mozilla/5.0" -s -o $dlFile $dUrl
+                        Write-Host "  -> Downloading [$($i+1)/$($downloadUrls.Count)] $fName..." -ForegroundColor Cyan
+                        curl.exe -fL --retry 2 --connect-timeout 10 --max-time 60 -A "Mozilla/5.0" -# -o $dlFile $dUrl
                         if ($isZipList[$i] -or ($fName -match '\.zip$')) {
                             Expand-Archive -Path $dlFile -DestinationPath $tempDir -Force
                         }
@@ -238,13 +239,13 @@ EXAMPLES:
             }
             # 2. URL Download (Direct Link or Release Asset)
             elseif ($target -match '^https?://') {
-                Write-Host "Downloading font from $target..." -ForegroundColor Cyan
                 $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
                 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
                 $fileName = ($target -split '/')[-1]
                 $dlPath = Join-Path $tempDir $fileName
+                Write-Host "  -> Downloading $fileName..." -ForegroundColor Cyan
                 if (Get-Command 'curl.exe' -ErrorAction SilentlyContinue) {
-                    curl.exe -fL -A "Mozilla/5.0" -s -o $dlPath $target
+                    curl.exe -fL --retry 2 --connect-timeout 10 --max-time 60 -A "Mozilla/5.0" -# -o $dlPath $target
                 } else {
                     Invoke-WebRequest -Uri $target -OutFile $dlPath -Headers @{ 'User-Agent' = 'Mozilla/5.0' } -MaximumRedirection 10
                 }
